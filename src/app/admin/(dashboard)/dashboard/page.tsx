@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { StatsCards } from "@/components/stats-cards";
 import { DateRangePicker, DateFilter } from "@/components/date-range-picker";
 import { Input } from "@/components/ui/input";
@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = () => {
+  const fetchStats = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (filter === "custom" && startDate && endDate) {
@@ -77,11 +77,11 @@ export default function AdminDashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, [filter, startDate, endDate, reasonFilter, collegeFilter, employeeStatus]);
 
   useEffect(() => {
     fetchStats();
-  }, [filter, startDate, endDate, reasonFilter, collegeFilter, employeeStatus]);
+  }, [fetchStats]);
 
   const handleFilterChange = (f: DateFilter) => {
     setFilter(f);
