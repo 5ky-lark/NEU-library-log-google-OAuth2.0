@@ -26,11 +26,7 @@ export default function CheckInGooglePage() {
     if (status === "unauthenticated") {
       router.push("/");
     }
-
-    if (status === "authenticated" && session?.user?.role === "admin") {
-      router.push("/admin/dashboard");
-    }
-  }, [status, session?.user?.role, router]);
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,10 +103,6 @@ export default function CheckInGooglePage() {
   }
 
   if (!session?.user?.email) {
-    return null;
-  }
-
-  if (session.user.role === "admin") {
     return null;
   }
 

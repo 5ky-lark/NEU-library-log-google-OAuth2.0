@@ -114,6 +114,13 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        const email = normalizeEmail(user.email || (token.email as string | undefined));
+        const canUseAdminRole = !!email && isAllowedDomain(email) && isAdminGoogleEmail(email);
+
+        if (canUseAdminRole) {
+          token.role = "admin";
+          return token;
+        }
 
         if (account?.provider === "credentials") {
           token.role = "admin";

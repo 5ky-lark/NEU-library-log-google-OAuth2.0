@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -30,9 +30,6 @@ function LoginForm() {
   const handleGoogleAdminLogin = async () => {
     setError("");
     setLoading(true);
-
-    // Sign out first so switching from user mode to admin mode is explicit.
-    await signOut({ redirect: false });
 
     // For OAuth providers, let NextAuth handle redirects natively.
     await signIn("google-admin", {
