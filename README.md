@@ -1,46 +1,51 @@
 # NEU Library Visitor Log
 
-This system is built for academic purposes and is intended to be submitted to:
-Prof. Jeremias C. Esperanza
+A web-based library visitor management and analytics system for New Era University.
 
-## Live URLs
-- Main App: https://www.neulibrarylog.online/
-- Admin Login: https://www.neulibrarylog.online/admin/login
+This project is for academic submission to Prof. Jeremias C. Esperanza.
 
-## Project Objective
-This application digitizes library visitor operations by providing:
-- Structured visitor check-in through Google authentication
-- Role-aware visitor classification (`student`, `teacher`, `staff`)
-- Admin analytics dashboard with date and dimension filters
-- Registered account lifecycle operations (add, search, block/unblock, delete)
-- Visit log reporting with export support
+## Live Application
+| Surface | URL |
+|---|---|
+| Main App | https://www.neulibrarylog.online/ |
+| Admin Login | https://www.neulibrarylog.online/admin/login |
 
-## Feature Set
-- Google-based check-in flow (`google-user`)
-- Google-based admin access (`google-admin`, allowlisted emails only)
-- Dashboard filter presets (`all`, `today`, `week`, `month`, `custom`)
-- Top 3 KPI cards for reasons and colleges
-- Timezone-aware daily aggregation (default `Asia/Manila`)
-- Registered Accounts with filtering and pagination
-- Visit Logs with search, date filtering, pagination, and PDF export
-- PDF export for both accounts and logs
+## Overview
+The system digitizes library visitor operations through authenticated check-in, role-aware records, and an admin analytics dashboard.
+
+Core goals:
+- Streamline visitor check-in with Google OAuth
+- Classify visitor roles (`student`, `teacher`, `staff`)
+- Track trends by reason, college, and date range
+- Manage account lifecycle (create, search, block/unblock, delete)
+- Export records for reporting
+
+## Feature Highlights
+- Google visitor check-in flow (`google-user`)
+- Admin-only dashboard access (`google-admin`, allowlisted emails)
+- Dashboard filters (`all`, `today`, `week`, `month`, `custom`)
+- KPI cards and trend visualizations
+- Registered accounts table with filtering and pagination
+- Visit logs with search, date filtering, pagination, and PDF export
+- PDF export for both visitor accounts and logs
 
 ## AI RAG Admin Chatbot (Gemini 3.1)
-- A floating AI assistant is available on the admin side (lower-right corner) for quick data questions.
-- The chatbot uses Google Gemini with default model `gemini-3.1-flash-lite-preview`.
-- Backend route: `POST /api/admin-chat` (admin session required).
-- Responses are grounded in MongoDB data from visitors and visit logs, then composed into natural answers.
-- Common analytics questions are answered with deterministic DB-first logic before LLM fallback, including:
-   - busiest hour/time periods
-   - monthly visitor peaks
-   - top reasons and top colleges
-   - account totals (registered and blocked)
-- Recent chat history is sent to support follow-up questions in context.
-- Output text is sanitized for clean UI rendering.
+The admin side includes a floating AI assistant for natural-language analytics questions.
 
-Configuration:
-- Required: `GEMINI_API_KEY`
-- Optional: `GEMINI_MODEL` (defaults to `gemini-3.1-flash-lite-preview`)
+| Item | Details |
+|---|---|
+| Endpoint | `POST /api/admin-chat` |
+| Access | Admin session required |
+| Model | `gemini-3.1-flash-lite-preview` (default) |
+| Required Env | `GEMINI_API_KEY` |
+| Optional Env | `GEMINI_MODEL` |
+
+How it works:
+- Grounds responses in MongoDB visitor and visit log data
+- Uses deterministic DB-first logic for common analytics (busiest hour, top reason, top college, monthly peak, account totals)
+- Falls back to Gemini for broader or open-ended queries
+- Includes recent chat history for follow-up context
+- Sanitizes output for clean UI rendering
 
 ## Tech Stack
 - Next.js 14 (App Router)
@@ -51,8 +56,7 @@ Configuration:
 - Recharts
 - jsPDF + jspdf-autotable
 
-## Coding Structure
-
+## Project Structure
 ```text
 NEU Library Visitor Log/
 |-- scripts/
@@ -124,23 +128,20 @@ NEU Library Visitor Log/
 `-- README.md
 ```
 
-### Notes
-- Route handlers are kept thin and focused on request/response behavior.
-- Domain shape and persistence constraints are centralized in `src/models`.
-- Cross-cutting configuration lives in `src/lib` (auth, db, constants).
-- Reusable UI atoms are isolated in `src/components/ui`.
-- Feature-level components remain in `src/components` to avoid duplication.
+Architecture notes:
+- Route handlers stay focused on request and response behavior
+- Data models and constraints are centralized in `src/models`
+- Shared auth/db/constants utilities are in `src/lib`
+- Reusable UI atoms are in `src/components/ui`
 
 ## Authentication and Authorization
-- `google-user` provider: visitor check-in flow.
-- `google-admin` provider: admin-only flow.
-- Admin access control is enforced through:
-   - `GOOGLE_ALLOWED_DOMAIN`
-   - `ADMIN_GOOGLE_EMAILS`
-- Admin route protection is applied via middleware and layout checks.
+- `google-user`: visitor check-in provider
+- `google-admin`: admin provider
+- Admin access is restricted by `GOOGLE_ALLOWED_DOMAIN` and `ADMIN_GOOGLE_EMAILS`
+- Middleware and admin layouts enforce route protection
 
 ## Environment Variables
-Create local `.env` based on `.env.example`.
+Create `.env` from `.env.example`.
 
 Required:
 - `MONGODB_URI`
@@ -152,27 +153,25 @@ Required:
 - `ADMIN_GOOGLE_EMAILS`
 
 Optional (recommended):
-- `MONGODB_URI_FALLBACK` (for networks blocking SRV DNS)
+- `MONGODB_URI_FALLBACK` for SRV DNS fallback
 - `STATS_TIMEZONE` (default `Asia/Manila`)
-- `ADMIN_EMAIL`, `ADMIN_PASSWORD` (admin seed credentials)
-- `GEMINI_API_KEY` (enables AI admin assistant responses)
-- `GEMINI_MODEL` (default `gemini-3.1-flash-lite-preview`)
+- `ADMIN_EMAIL`, `ADMIN_PASSWORD` for seeding
+- `GEMINI_API_KEY` to enable admin AI assistant
+- `GEMINI_MODEL` to override the default Gemini model
 
-Local note:
-- Set `NEXTAUTH_URL=http://localhost:3000`
-
-Production note:
-- Set `NEXTAUTH_URL=https://www.neulibrarylog.online`
+Runtime notes:
+- Local: `NEXTAUTH_URL=http://localhost:3000`
+- Production: `NEXTAUTH_URL=https://www.neulibrarylog.online`
 
 ## Google OAuth Setup
-Authorized redirect URIs:
+Add these redirect URIs in Google Cloud Console:
 - `http://localhost:3000/api/auth/callback/google-user`
 - `http://localhost:3000/api/auth/callback/google-admin`
 - `https://www.neulibrarylog.online/api/auth/callback/google-user`
 - `https://www.neulibrarylog.online/api/auth/callback/google-admin`
 
-## Local Development Setup
-1. Install dependencies:
+## Quick Start (Local)
+1. Install dependencies.
 
 ```bash
 npm install
@@ -180,13 +179,13 @@ npm install
 
 2. Configure `.env`.
 
-3. Seed data:
+3. Seed data.
 
 ```bash
 npm run seed
 ```
 
-4. Start dev server:
+4. Run the app.
 
 ```bash
 npm run dev
@@ -197,58 +196,55 @@ npm run dev
 - `http://localhost:3000/admin/login`
 
 ## Seed Script Summary
-File: `scripts/seed.ts`
-
-Important:
-- Seeded records are for demo, testing, and academic presentation purposes only.
-- Seeded users and logs are synthetic/curated sample data and should not be treated as official production records.
-- Before final deployment for real operations, replace seed-generated records with verified real data and disable demo seeding in operational environments.
+Source: `scripts/seed.ts`
 
 The seed process:
-- Connects to MongoDB (with fallback URI support)
-- Upserts registered accounts from roster data
-- Applies role overrides where configured
-- Normalizes legacy role values (`faculty` to `teacher`)
-- Generates randomized visit logs in configured timeframe
-- Supports excluded emails for non-preassigned testing users
+- Connects to MongoDB (supports fallback URI)
+- Upserts visitor accounts from roster data
+- Applies configured role overrides
+- Normalizes legacy role value `faculty` to `teacher`
+- Generates randomized visit logs in the configured timeframe
+- Supports excluded emails for testing
 
-## High-Level API Endpoints
-- `POST /api/checkin`
-- `GET /api/stats`
-- `GET /api/logs`
-- `GET /api/visitors`
-- `POST /api/visitors`
-- `PATCH /api/visitors/:id`
-- `DELETE /api/visitors/:id`
+Seed data notice:
+- Seeded records are synthetic and for demo/testing/academic presentation use only
+- Replace with verified operational data before real deployment
+
+## API Endpoints
+| Method | Route |
+|---|---|
+| POST | `/api/checkin` |
+| GET | `/api/stats` |
+| GET | `/api/logs` |
+| GET | `/api/visitors` |
+| POST | `/api/visitors` |
+| PATCH | `/api/visitors/:id` |
+| DELETE | `/api/visitors/:id` |
 
 ## Troubleshooting
-- Local redirects to production:
-   - Ensure local `NEXTAUTH_URL=http://localhost:3000`
-- Mongo SRV DNS error `querySrv ECONNREFUSED`:
-   - Set `MONGODB_URI_FALLBACK`
-- Admin login denied:
-   - Verify email exists in `ADMIN_GOOGLE_EMAILS`
-- OAuth mismatch errors:
-   - Recheck all callback URIs in Google Cloud Console
+- Redirecting to production while local: ensure `NEXTAUTH_URL=http://localhost:3000`
+- Mongo SRV DNS `querySrv ECONNREFUSED`: set `MONGODB_URI_FALLBACK`
+- Admin login denied: confirm user email exists in `ADMIN_GOOGLE_EMAILS`
+- OAuth mismatch: verify callback URIs in Google Cloud Console
 
 ## NPM Scripts
-- `npm run dev` - start development server
-- `npm run build` - create production build
-- `npm run start` - run production build
-- `npm run lint` - lint project
-- `npm run seed` - run seed script
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Run production build |
+| `npm run lint` | Run lint checks |
+| `npm run seed` | Seed database |
 
-## Security Notes
-- Never commit `.env` secrets.
-- Rotate credentials immediately if exposed.
-- Keep admin allowlist minimal and explicit.
+## Security
+- Never commit secrets from `.env`
+- Rotate exposed credentials immediately
+- Keep the admin allowlist minimal and explicit
 
 ## Favicon
-Favicon source file:
-- `src/app/icon.png`
+Source file: `src/app/icon.png`
 
 ## Academic Use Statement
-This project is intended for academic purposes and submission requirements.
+This project is intended for academic submission requirements.
 
-Submitted to:
-Prof. Jeremias C. Esperanza
+Submitted to Prof. Jeremias C. Esperanza.

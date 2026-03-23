@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import VisitLog from "@/models/VisitLog";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const STATS_TIMEZONE = process.env.STATS_TIMEZONE || "Asia/Manila";
 
 function getDateRange(filter: string) {
