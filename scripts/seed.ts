@@ -187,7 +187,7 @@ async function seed() {
   start.setHours(0, 0, 0, 0);
 
   const visitorIds = seededVisitors.map((v) => v._id);
-  await VisitLog.deleteMany({ visitor: { $in: visitorIds }, checkInTime: { $gte: start, $lte: end } });
+  await VisitLog.deleteMany({ visitor: { $in: visitorIds } });
 
   const logsToInsert: Array<{
     visitor: mongoose.Types.ObjectId;

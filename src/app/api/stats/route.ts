@@ -74,11 +74,7 @@ export async function GET(request: NextRequest) {
         .sort({ checkInTime: 1 })
         .lean();
 
-      start = firstLog?.checkInTime
-        ? new Date(firstLog.checkInTime)
-        : new Date();
-      start.setHours(0, 0, 0, 0);
-
+      start = firstLog?.checkInTime ? new Date(firstLog.checkInTime) : new Date();
       end = new Date();
       end.setHours(23, 59, 59, 999);
     } else {

@@ -9,6 +9,20 @@ interface StatsCardsProps {
   end: string;
 }
 
+function formatIsoDateRangeValue(value: string) {
+  const [datePart] = value.split("T");
+  if (!datePart) {
+    return new Date(value).toLocaleDateString();
+  }
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  if (!year || !month || !day) {
+    return new Date(value).toLocaleDateString();
+  }
+
+  return new Date(year, month - 1, day).toLocaleDateString();
+}
+
 const cards = [
   {
     key: "total",
@@ -33,8 +47,8 @@ export function StatsCards({
   start,
   end,
 }: StatsCardsProps) {
-  const startDate = new Date(start).toLocaleDateString();
-  const endDate = new Date(end).toLocaleDateString();
+  const startDate = formatIsoDateRangeValue(start);
+  const endDate = formatIsoDateRangeValue(end);
   const daysDiff = Math.max(
     1,
     Math.ceil(
