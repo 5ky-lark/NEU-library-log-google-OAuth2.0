@@ -64,6 +64,19 @@ function randomDateBetween(start: Date, end: Date): Date {
   return d;
 }
 
+function parseDateOnly(dateText?: string): Date | null {
+  if (!dateText) return null;
+  const m = dateText.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const monthIndex = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  if (Number.isNaN(year) || Number.isNaN(monthIndex) || Number.isNaN(day)) {
+    return null;
+  }
+  return new Date(year, monthIndex, day);
+}
+
 async function seed() {
   console.log("Connecting to MongoDB...");
   try {
@@ -153,8 +166,18 @@ async function seed() {
     }
   }
 
-  const start = new Date("2026-01-10T00:00:00.000Z");
-  const end = new Date("2026-03-23T23:59:59.999Z");
+  const configuredStart = parseDateOnly(process.env.SEED_START_DATE);
+  const configuredEnd = parseDateOnly(process.env.SEED_END_DATE);
+  const seedWindowDays = Math.max(1, Number(process.env.SEED_WINDOW_DAYS || "75"));
+
+  const end = configuredEnd || new Date();
+  end.setHours(23, 59, 59, 999);
+
+  const start = configuredStart || new Date(end);
+  if (!configuredStart) {
+    start.setDate(start.getDate() - seedWindowDays);
+  }
+  start.setHours(0, 0, 0, 0);
 
   const visitorIds = seededVisitors.map((v) => v._id);
   await VisitLog.deleteMany({ visitor: { $in: visitorIds }, checkInTime: { $gte: start, $lte: end } });
@@ -190,7 +213,9 @@ async function seed() {
   }
 
   console.log(`Seeded/updated ${seededVisitors.length} account(s).`);
-  console.log(`Inserted ${logsToInsert.length} visit log(s) from 2026-01-10 to 2026-03-23.`);
+  console.log(
+    `Inserted ${logsToInsert.length} visit log(s) from ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}.`
+  );
 
   console.log("Seed complete.");
   process.exit(0);
