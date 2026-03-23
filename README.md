@@ -1,6 +1,6 @@
 # NEU Library Visitor Log
 
-A web-based library visitor management and analytics system for New Era University.
+A web-based library visitor management and analytics system with AI RAG Admin Chatbot.
 
 This project is for academic submission to Prof. Jeremias C. Esperanza.
 
