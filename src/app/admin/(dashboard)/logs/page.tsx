@@ -25,60 +25,115 @@ interface LogEntry {
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState<DateFilter>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
 
-  const fetchLogs = useCallback(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (filter === "custom" && startDate && endDate) {
-      params.set("startDate", startDate);
-      params.set("endDate", endDate);
-    } else if (filter !== "custom" && filter !== "all") {
-      const now = new Date();
-      let start: Date;
-      switch (filter) {
-        case "today":
-          start = new Date(now);
-          start.setHours(0, 0, 0, 0);
-          break;
-        case "week":
-          start = new Date(now);
-          start.setDate(start.getDate() - 7);
-          start.setHours(0, 0, 0, 0);
-          break;
-        case "month":
-          start = new Date(now);
-          start.setMonth(start.getMonth() - 1);
-          start.setHours(0, 0, 0, 0);
-          break;
-        default:
-          start = new Date(0);
+  const buildParams = useCallback(
+    (all = false) => {
+      const params = new URLSearchParams();
+
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
       }
-      params.set("startDate", start.toISOString());
-      params.set("endDate", new Date().toISOString());
-    }
-    fetch(`/api/logs?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setLogs(Array.isArray(data) ? data : []);
+
+      if (filter === "custom" && startDate && endDate) {
+        params.set("startDate", startDate);
+        params.set("endDate", endDate);
+      } else if (filter !== "custom" && filter !== "all") {
+        const now = new Date();
+        let start: Date;
+
+        switch (filter) {
+          case "today":
+            start = new Date(now);
+            start.setHours(0, 0, 0, 0);
+            break;
+          case "week":
+            start = new Date(now);
+            start.setDate(start.getDate() - 7);
+            start.setHours(0, 0, 0, 0);
+            break;
+          case "month":
+            start = new Date(now);
+            start.setMonth(start.getMonth() - 1);
+            start.setHours(0, 0, 0, 0);
+            break;
+          default:
+            start = new Date(0);
+        }
+
+        params.set("startDate", start.toISOString());
+        params.set("endDate", new Date().toISOString());
+      }
+
+      if (all) {
+        params.set("all", "1");
+      } else {
+        params.set("page", String(currentPage));
+        params.set("pageSize", String(rowsPerPage));
+      }
+
+      return params;
+    },
+    [currentPage, debouncedSearch, endDate, filter, startDate]
+  );
+
+  const fetchLogs = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/logs?${buildParams(false).toString()}`, {
+          signal,
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to fetch logs");
+        }
+
+        setLogs(Array.isArray(data?.items) ? data.items : []);
+        setTotalCount(Number(data?.total || 0));
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setLogs([]);
+          setTotalCount(0);
+        }
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [search, filter, startDate, endDate]);
+      }
+    },
+    [buildParams]
+  );
+
+  const fetchAllLogsForExport = useCallback(async () => {
+    const res = await fetch(`/api/logs?${buildParams(true).toString()}`);
+    const data = await res.json();
+    return Array.isArray(data?.items) ? data.items : [];
+  }, [buildParams]);
 
   useEffect(() => {
-    fetchLogs();
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchLogs(controller.signal);
+    return () => controller.abort();
   }, [fetchLogs]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filter, startDate, endDate]);
+  }, [debouncedSearch, filter, startDate, endDate]);
 
   const handleFilterChange = (f: DateFilter) => {
     setFilter(f);
@@ -88,9 +143,8 @@ export default function AdminLogsPage() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil(logs.length / rowsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
   const pageStart = (currentPage - 1) * rowsPerPage;
-  const paginatedLogs = logs.slice(pageStart, pageStart + rowsPerPage);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -100,7 +154,6 @@ export default function AdminLogsPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Visit Logs</h1>
@@ -109,11 +162,10 @@ export default function AdminLogsPage() {
           </p>
         </div>
         <div className="self-start">
-          <ExportLogsPDF data={logs} />
+          <ExportLogsPDF data={logs} fetchAllData={fetchAllLogsForExport} />
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col gap-4">
         <SearchBar
           value={search}
@@ -131,7 +183,6 @@ export default function AdminLogsPage() {
         />
       </div>
 
-      {/* Table */}
       <div className="rounded-xl border bg-card shadow-premium overflow-hidden">
         <Table>
           <TableHeader>
@@ -184,7 +235,7 @@ export default function AdminLogsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedLogs.map((log) => (
+              logs.map((log) => (
                 <TableRow key={log._id}>
                   <TableCell className="font-medium">
                     {log.visitorData?.name || "\u2014"}
@@ -214,11 +265,10 @@ export default function AdminLogsPage() {
         </Table>
       </div>
 
-      {/* Record count */}
-      {!loading && logs.length > 0 && (
+      {!loading && totalCount > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, logs.length)} of {logs.length} record{logs.length !== 1 && "s"}
+            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, totalCount)} of {totalCount} record{totalCount !== 1 && "s"}
           </p>
 
           <div className="flex items-center gap-2">

@@ -28,6 +28,8 @@ const VisitorSchema = new Schema<IVisitor>(
 );
 
 VisitorSchema.index({ name: "text", program: "text", email: "text" });
+VisitorSchema.index({ blocked: 1, type: 1, createdAt: -1 });
+VisitorSchema.index({ program: 1 });
 
 const Visitor: Model<IVisitor> =
   mongoose.models.Visitor || mongoose.model<IVisitor>("Visitor", VisitorSchema);

@@ -16,20 +16,66 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim() || "";
+    const status = searchParams.get("status") || "all";
+    const type = searchParams.get("type") || "all";
+    const all = searchParams.get("all") === "1";
+    const page = Math.max(1, Number(searchParams.get("page") || "1"));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") || "10"))
+    );
 
-    let query = Visitor.find();
+    const match: Record<string, unknown> = {};
 
     if (search) {
-      query = query.or([
+      match.$or = [
         { name: { $regex: search, $options: "i" } },
         { program: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
-      ]);
+      ];
     }
 
-    const visitors = await query.sort({ createdAt: -1 }).lean();
+    if (status === "active") {
+      match.blocked = false;
+    } else if (status === "blocked") {
+      match.blocked = true;
+    }
 
-    return NextResponse.json(visitors);
+    if (["student", "teacher", "employee"].includes(type)) {
+      match.type = type;
+    }
+
+    const [result] = await Visitor.aggregate([
+      { $match: match },
+      {
+        $facet: {
+          items: [
+            { $sort: { createdAt: -1 } },
+            ...(all ? [] : [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }]),
+          ],
+          total: [{ $count: "count" }],
+          blockedCount: [{ $match: { blocked: true } }, { $count: "count" }],
+          activeCount: [{ $match: { blocked: false } }, { $count: "count" }],
+        },
+      },
+    ]);
+
+    const items = (result?.items || []) as unknown[];
+    const total = result?.total?.[0]?.count || 0;
+    const blockedCount = result?.blockedCount?.[0]?.count || 0;
+    const activeCount = result?.activeCount?.[0]?.count || 0;
+
+    return NextResponse.json({
+      items,
+      total,
+      page: all ? 1 : page,
+      pageSize: all ? total : pageSize,
+      summary: {
+        totalCount: total,
+        activeCount,
+        blockedCount,
+      },
+    });
   } catch (error) {
     console.error("Visitors fetch error:", error);
     return NextResponse.json(

@@ -21,6 +21,12 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")?.trim() || "";
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const all = searchParams.get("all") === "1";
+    const page = Math.max(1, Number(searchParams.get("page") || "1"));
+    const pageSize = Math.min(
+      100,
+      Math.max(1, Number(searchParams.get("pageSize") || "10"))
+    );
 
     let match: Record<string, unknown> = {};
 
@@ -36,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let logs = await VisitLog.aggregate([
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       {
         $lookup: {
@@ -47,24 +53,40 @@ export async function GET(request: NextRequest) {
         },
       },
       { $unwind: "$visitorData" },
-    ]);
+    ];
 
     if (search) {
-      const lower = search.toLowerCase();
-      logs = logs.filter(
-        (log: { visitorData: { name?: string; program?: string }; reason?: string }) =>
-          (log.visitorData?.name || "").toLowerCase().includes(lower) ||
-          (log.visitorData?.program || "").toLowerCase().includes(lower) ||
-          (log.reason || "").toLowerCase().includes(lower)
-      );
+      pipeline.push({
+        $match: {
+          $or: [
+            { "visitorData.name": { $regex: search, $options: "i" } },
+            { "visitorData.program": { $regex: search, $options: "i" } },
+            { reason: { $regex: search, $options: "i" } },
+          ],
+        },
+      });
     }
 
-    logs.sort(
-      (a: { checkInTime: Date }, b: { checkInTime: Date }) =>
-        new Date(b.checkInTime).getTime() - new Date(a.checkInTime).getTime()
-    );
+    pipeline.push({ $sort: { checkInTime: -1 } });
+    pipeline.push({
+      $facet: {
+        items: [
+          ...(all ? [] : [{ $skip: (page - 1) * pageSize }, { $limit: pageSize }]),
+        ],
+        total: [{ $count: "count" }],
+      },
+    });
 
-    return NextResponse.json(logs);
+    const [result] = await VisitLog.aggregate(pipeline);
+    const items = result?.items || [];
+    const total = result?.total?.[0]?.count || 0;
+
+    return NextResponse.json({
+      items,
+      total,
+      page: all ? 1 : page,
+      pageSize: all ? total : pageSize,
+    });
   } catch (error) {
     console.error("Logs fetch error:", error);
     return NextResponse.json(

@@ -49,9 +49,13 @@ interface Visitor {
 export default function AdminVisitorsPage() {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "student" | "teacher" | "employee">("all");
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const [blockedCount, setBlockedCount] = useState(0);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -65,24 +69,74 @@ export default function AdminVisitorsPage() {
   const [addError, setAddError] = useState("");
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [refreshTick, setRefreshTick] = useState(0);
   const rowsPerPage = 10;
 
-  const fetchVisitors = useCallback(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    fetch(`/api/visitors?${params}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setVisitors(Array.isArray(data) ? data : []);
+  const buildParams = useCallback(
+    (all = false) => {
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      if (statusFilter !== "all") params.set("status", statusFilter);
+      if (typeFilter !== "all") params.set("type", typeFilter);
+      if (all) {
+        params.set("all", "1");
+      } else {
+        params.set("page", String(currentPage));
+        params.set("pageSize", String(rowsPerPage));
+      }
+      return params;
+    },
+    [currentPage, debouncedSearch, statusFilter, typeFilter]
+  );
+
+  const fetchVisitors = useCallback(
+    async (signal?: AbortSignal) => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/visitors?${buildParams(false).toString()}`, {
+          signal,
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to fetch visitors");
+        }
+
+        setVisitors(Array.isArray(data?.items) ? data.items : []);
+        setTotalCount(Number(data?.total || 0));
+        setActiveCount(Number(data?.summary?.activeCount || 0));
+        setBlockedCount(Number(data?.summary?.blockedCount || 0));
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          setVisitors([]);
+          setTotalCount(0);
+          setActiveCount(0);
+          setBlockedCount(0);
+        }
+      } finally {
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
+      }
+    },
+    [buildParams]
+  );
+
+  const fetchAllVisitorsForExport = useCallback(async () => {
+    const res = await fetch(`/api/visitors?${buildParams(true).toString()}`);
+    const data = await res.json();
+    return Array.isArray(data?.items) ? data.items : [];
+  }, [buildParams]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
   }, [search]);
 
   useEffect(() => {
-    fetchVisitors();
-  }, [fetchVisitors]);
+    const controller = new AbortController();
+    fetchVisitors(controller.signal);
+    return () => controller.abort();
+  }, [fetchVisitors, refreshTick]);
 
   const handleBlockConfirm = async (blocked: boolean, reason?: string) => {
     if (!selectedVisitor) return;
@@ -92,7 +146,7 @@ export default function AdminVisitorsPage() {
       body: JSON.stringify({ blocked, blockedReason: reason }),
     });
     if (res.ok) {
-      fetchVisitors();
+      setRefreshTick((value) => value + 1);
       setSelectedVisitor(null);
     }
   };
@@ -119,7 +173,7 @@ export default function AdminVisitorsPage() {
         type: "student",
       });
       setAddModalOpen(false);
-      fetchVisitors();
+      setRefreshTick((value) => value + 1);
     } finally {
       setAddLoading(false);
     }
@@ -144,36 +198,24 @@ export default function AdminVisitorsPage() {
         return;
       }
 
-      fetchVisitors();
+      setRefreshTick((value) => value + 1);
     } finally {
       setDeleteLoadingId(null);
     }
   };
 
-  const filteredAccounts = visitors.filter((account) => {
-    const statusMatch =
-      statusFilter === "all" ||
-      (statusFilter === "blocked" ? account.blocked : !account.blocked);
-    const typeMatch = typeFilter === "all" || account.type === typeFilter;
-    return statusMatch && typeMatch;
-  });
-
-  const totalPages = Math.max(1, Math.ceil(filteredAccounts.length / rowsPerPage));
+  const totalPages = Math.max(1, Math.ceil(totalCount / rowsPerPage));
   const pageStart = (currentPage - 1) * rowsPerPage;
-  const paginatedAccounts = filteredAccounts.slice(pageStart, pageStart + rowsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, statusFilter, typeFilter]);
+  }, [debouncedSearch, statusFilter, typeFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
-
-  const blockedCount = visitors.filter((account) => account.blocked).length;
-  const activeCount = visitors.length - blockedCount;
 
   return (
     <div className="space-y-8">
@@ -186,7 +228,11 @@ export default function AdminVisitorsPage() {
           </p>
         </div>
         <div className="flex gap-2 self-start">
-          <ExportVisitorsPDF data={filteredAccounts} filename="registered-accounts" />
+          <ExportVisitorsPDF
+            data={visitors}
+            filename="registered-accounts"
+            fetchAllData={fetchAllVisitorsForExport}
+          />
           <Button onClick={() => setAddModalOpen(true)} variant="gradient">
             <Plus className="h-4 w-4 mr-2" />
             Add Account
@@ -197,7 +243,7 @@ export default function AdminVisitorsPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total Accounts</p>
-          <p className="text-2xl font-semibold mt-1">{visitors.length}</p>
+          <p className="text-2xl font-semibold mt-1">{totalCount}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs text-muted-foreground">Active Accounts</p>
@@ -285,7 +331,7 @@ export default function AdminVisitorsPage() {
                   </div>
                 </TableCell>
               </TableRow>
-            ) : filteredAccounts.length === 0 ? (
+            ) : visitors.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -296,7 +342,7 @@ export default function AdminVisitorsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedAccounts.map((v) => (
+              visitors.map((v) => (
                 <TableRow key={v._id}>
                   <TableCell className="font-medium">{v.name}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -368,10 +414,10 @@ export default function AdminVisitorsPage() {
         </Table>
       </div>
 
-      {!loading && filteredAccounts.length > 0 && (
+      {!loading && totalCount > 0 && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, filteredAccounts.length)} of {filteredAccounts.length} account{filteredAccounts.length !== 1 && "s"}
+            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, totalCount)} of {totalCount} account{totalCount !== 1 && "s"}
           </p>
 
           <div className="flex items-center gap-2">

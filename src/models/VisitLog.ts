@@ -26,6 +26,8 @@ const VisitLogSchema = new Schema<IVisitLog>(
 VisitLogSchema.index({ visitor: 1 });
 VisitLogSchema.index({ checkInTime: 1 });
 VisitLogSchema.index({ reason: 1 });
+VisitLogSchema.index({ checkInTime: -1, reason: 1 });
+VisitLogSchema.index({ checkOutTime: 1 });
 
 const VisitLog: Model<IVisitLog> =
   mongoose.models.VisitLog ||
