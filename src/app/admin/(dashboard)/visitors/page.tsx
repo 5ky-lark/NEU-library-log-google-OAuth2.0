@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { COLLEGES } from "@/lib/constants";
 import {
   Table,
   TableBody,
@@ -444,14 +445,22 @@ export default function AdminVisitorsPage() {
             </div>
             <div className="space-y-2">
               <Label>Program</Label>
-              <Input
+              <Select
                 value={addForm.program}
                 onChange={(e) =>
                   setAddForm((f) => ({ ...f, program: e.target.value }))
                 }
-                placeholder="e.g., BSIT, BSCS, Teacher - CCSI"
                 required
-              />
+              >
+                <option value="" disabled>
+                  Select program
+                </option>
+                {COLLEGES.map((college) => (
+                  <option key={college} value={college}>
+                    {college}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
