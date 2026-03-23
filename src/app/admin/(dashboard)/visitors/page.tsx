@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SearchBar } from "@/components/search-bar";
 import { ExportVisitorsPDF } from "@/components/pdf-export-button";
 import { BlockVisitorModal } from "@/components/block-visitor-modal";
@@ -63,7 +63,7 @@ export default function AdminVisitorsPage() {
   const [addError, setAddError] = useState("");
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
 
-  const fetchVisitors = () => {
+  const fetchVisitors = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -74,11 +74,11 @@ export default function AdminVisitorsPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, [search]);
 
   useEffect(() => {
     fetchVisitors();
-  }, [search]);
+  }, [fetchVisitors]);
 
   const handleBlockConfirm = async (blocked: boolean, reason?: string) => {
     if (!selectedVisitor) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { SearchBar } from "@/components/search-bar";
 import { ExportLogsPDF } from "@/components/pdf-export-button";
 import { DateRangePicker, DateFilter } from "@/components/date-range-picker";
@@ -29,7 +29,7 @@ export default function AdminLogsPage() {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchLogs = () => {
+  const fetchLogs = useCallback(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -67,11 +67,11 @@ export default function AdminLogsPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, [search, filter, startDate, endDate]);
 
   useEffect(() => {
     fetchLogs();
-  }, [search, filter, startDate, endDate]);
+  }, [fetchLogs]);
 
   const handleFilterChange = (f: DateFilter) => {
     setFilter(f);
