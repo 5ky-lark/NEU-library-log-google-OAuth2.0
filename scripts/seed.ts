@@ -85,7 +85,7 @@ async function seed() {
 
   await Visitor.updateMany({ type: "faculty" }, { $set: { type: "teacher" } });
 
-  for (const excludedEmail of EXCLUDED_SEED_EMAILS) {
+  for (const excludedEmail of Array.from(EXCLUDED_SEED_EMAILS)) {
     const existing = await Visitor.findOne({ email: excludedEmail }).select("_id").lean();
     if (existing?._id) {
       await VisitLog.deleteMany({ visitor: existing._id });
