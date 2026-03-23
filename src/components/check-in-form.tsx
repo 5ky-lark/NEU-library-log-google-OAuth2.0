@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { AlertCircle } from "lucide-react";
 
 export function CheckInForm() {
@@ -11,9 +11,6 @@ export function CheckInForm() {
   const handleGoogleSignIn = async () => {
     setError(null);
     setLoading(true);
-
-    // Sign out first so role changes are explicit when the same account switches modes.
-    await signOut({ redirect: false });
 
     const result = await signIn("google-user", {
       redirect: false,
