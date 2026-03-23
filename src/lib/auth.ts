@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import connectDB from "./db";
 import Admin from "@/models/Admin";
+import AdminAccount from "@/models/AdminAccount";
 
 const DEFAULT_ALLOWED_DOMAIN = "neu.edu.ph";
 const DEFAULT_ADMIN_GOOGLE_EMAILS = [
@@ -33,6 +34,21 @@ function isAllowedDomain(email: string) {
 function isAdminGoogleEmail(email: string) {
   const adminEmails = parseConfiguredAdminEmails();
   return adminEmails.includes(email);
+}
+
+async function isAdminAuthorizedEmail(email: string) {
+  if (isAdminGoogleEmail(email)) {
+    return true;
+  }
+
+  try {
+    await connectDB();
+    const existing = await AdminAccount.findOne({ email }, { _id: 1 }).lean();
+    return !!existing;
+  } catch (error) {
+    console.error("Admin account lookup error:", error);
+    return false;
+  }
 }
 
 export const authOptions: NextAuthOptions = {
@@ -97,7 +113,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (account?.provider === "google-admin") {
-        return !!email && isAllowedDomain(email) && isAdminGoogleEmail(email);
+        return !!email && isAllowedDomain(email) && (await isAdminAuthorizedEmail(email));
       }
 
       if (account?.provider === "google") {
@@ -115,7 +131,10 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         const email = normalizeEmail(user.email || (token.email as string | undefined));
-        const canUseAdminRole = !!email && isAllowedDomain(email) && isAdminGoogleEmail(email);
+        const canUseAdminRole =
+          !!email &&
+          isAllowedDomain(email) &&
+          (await isAdminAuthorizedEmail(email));
 
         if (canUseAdminRole) {
           token.role = "admin";

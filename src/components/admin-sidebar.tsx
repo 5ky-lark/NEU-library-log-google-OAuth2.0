@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  Settings,
   LogOut,
   Library,
   ExternalLink,
@@ -19,6 +20,7 @@ const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/logs", label: "Visit Logs", icon: FileText },
   { href: "/admin/accounts", label: "Registered Accounts", icon: Users },
+  { href: "/admin/settings", label: "Admin Settings", icon: Settings },
 ];
 
 export function AdminSidebar() {
