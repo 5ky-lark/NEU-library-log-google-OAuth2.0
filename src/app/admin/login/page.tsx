@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertCircle } from "lucide-react";
@@ -12,8 +12,20 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/admin/dashboard";
+  const oauthError = searchParams.get("error");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!oauthError) return;
+
+    if (oauthError === "AccessDenied") {
+      setError("This Google account is not authorized for admin access.");
+      return;
+    }
+
+    setError("Google login failed. Please try again.");
+  }, [oauthError]);
 
   const handleGoogleAdminLogin = async () => {
     setError("");
@@ -22,24 +34,11 @@ function LoginForm() {
     // Sign out first so switching from user mode to admin mode is explicit.
     await signOut({ redirect: false });
 
-    const result = await signIn("google-admin", {
-      redirect: false,
+    // For OAuth providers, let NextAuth handle redirects natively.
+    await signIn("google-admin", {
       callbackUrl,
     });
 
-    if (result?.error) {
-      setError("This Google account is not authorized for admin access.");
-      setLoading(false);
-      return;
-    }
-
-    if (result?.url) {
-      router.push(result.url);
-      router.refresh();
-      return;
-    }
-
-    setError("Google login failed");
     setLoading(false);
   };
 
@@ -121,7 +120,7 @@ function LoginForm() {
                   fill="#EA4335"
                 />
               </svg>
-              Sign in with Google (Admin)
+              {loading ? "Redirecting..." : "Sign in with Google (Admin)"}
             </button>
 
             <p className="text-center text-[11px] text-amber-100/65 mt-4">
