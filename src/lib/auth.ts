@@ -122,7 +122,10 @@ export const authOptions: NextAuthOptions = {
         } else if (account?.provider === "google-user") {
           token.role = "user";
         } else {
-          token.role = (user as { role?: string }).role || token.role || "user";
+          const userRole = (user as { role?: "user" | "admin" }).role;
+          token.role = userRole === "admin" || userRole === "user"
+            ? userRole
+            : token.role || "user";
         }
       }
 
