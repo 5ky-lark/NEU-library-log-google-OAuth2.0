@@ -3,10 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { StatsCards } from "@/components/stats-cards";
 import { DateRangePicker, DateFilter } from "@/components/date-range-picker";
-import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { VISIT_REASONS } from "@/lib/constants";
+import {
+  COLLEGES,
+  DASHBOARD_VISITOR_ROLES,
+  DashboardVisitorRole,
+  VISIT_REASONS,
+} from "@/lib/constants";
 import {
   Card,
   CardContent,
@@ -27,24 +31,22 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { BarChart3, PieChart as PieChartIcon, Users2 } from "lucide-react";
+import { BarChart3, PieChart as PieChartIcon } from "lucide-react";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export default function AdminDashboardPage() {
-  const [filter, setFilter] = useState<DateFilter>("today");
+  const [filter, setFilter] = useState<DateFilter>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reasonFilter, setReasonFilter] = useState("");
   const [collegeFilter, setCollegeFilter] = useState("");
-  const [employeeStatus, setEmployeeStatus] = useState<"all" | "employee" | "nonEmployee">("all");
+  const [visitorRoleFilter, setVisitorRoleFilter] =
+    useState<DashboardVisitorRole>("all");
   const [stats, setStats] = useState<{
     totalCount: number;
     byReason: { _id: string; count: number }[];
-    byType: { _id: string; count: number }[];
     byCollege: { _id: string; count: number }[];
-    employeeBreakdown: { _id: string; count: number }[];
-    currentInLibrary: number;
     dailyBreakdown: { _id: string; count: number }[];
     start: string;
     end: string;
@@ -66,8 +68,8 @@ export default function AdminDashboardPage() {
     if (collegeFilter.trim()) {
       params.set("college", collegeFilter.trim());
     }
-    if (employeeStatus !== "all") {
-      params.set("employeeStatus", employeeStatus);
+    if (visitorRoleFilter !== "all") {
+      params.set("visitorRole", visitorRoleFilter);
     }
 
     fetch(`/api/stats?${params}`)
@@ -77,7 +79,7 @@ export default function AdminDashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [filter, startDate, endDate, reasonFilter, collegeFilter, employeeStatus]);
+  }, [filter, startDate, endDate, reasonFilter, collegeFilter, visitorRoleFilter]);
 
   useEffect(() => {
     fetchStats();
@@ -91,14 +93,8 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const topReason = stats?.byReason?.[0];
-  const topCollege = stats?.byCollege?.[0];
-  const employeeTotal =
-    stats?.employeeBreakdown?.find((entry) => entry._id === "employee")?.count || 0;
-  const employeePercent =
-    stats && stats.totalCount > 0
-      ? Math.round((employeeTotal / stats.totalCount) * 100)
-      : 0;
+  const topReasons = (stats?.byReason || []).slice(0, 3);
+  const topColleges = (stats?.byCollege || []).slice(0, 3);
 
   return (
     <div className="space-y-8">
@@ -123,9 +119,7 @@ export default function AdminDashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Filter Statistics</CardTitle>
-          <CardDescription>
-            Narrow down data by reason, college, or employee status
-          </CardDescription>
+          <CardDescription>Narrow down data by reason, college, or role</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
@@ -146,28 +140,42 @@ export default function AdminDashboardPage() {
 
           <div className="space-y-2">
             <Label htmlFor="college-filter">College</Label>
-            <Input
+            <Select
               id="college-filter"
               value={collegeFilter}
               onChange={(e) => setCollegeFilter(e.target.value)}
-              placeholder="e.g., CICS"
-            />
+            >
+              <option value="">All colleges</option>
+              {COLLEGES.map((college) => (
+                <option key={college} value={college}>
+                  {college}
+                </option>
+              ))}
+            </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="employee-filter">Employee Status</Label>
+            <Label htmlFor="visitor-role-filter">Visitor Role</Label>
             <Select
-              id="employee-filter"
-              value={employeeStatus}
+              id="visitor-role-filter"
+              value={visitorRoleFilter}
               onChange={(e) =>
-                setEmployeeStatus(
-                  e.target.value as "all" | "employee" | "nonEmployee"
-                )
+                setVisitorRoleFilter(e.target.value as DashboardVisitorRole)
               }
             >
-              <option value="all">All visitors</option>
-              <option value="employee">Employees (Teacher/Staff)</option>
-              <option value="nonEmployee">Non-employee (Students)</option>
+              {DASHBOARD_VISITOR_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {role === "all"
+                    ? "All visitors"
+                    : role === "student"
+                    ? "Students"
+                    : role === "teacher"
+                    ? "Teachers"
+                    : role === "staff"
+                    ? "Staff"
+                    : "Employees (Teacher/Staff)"}
+                </option>
+              ))}
             </Select>
           </div>
         </CardContent>
@@ -189,50 +197,72 @@ export default function AdminDashboardPage() {
           {/* Stats Cards */}
           <StatsCards
             totalCount={stats.totalCount}
-            currentInLibrary={stats.currentInLibrary}
             start={stats.start}
             end={stats.end}
           />
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Top Reason</CardTitle>
-                <CardDescription>Most common visit purpose</CardDescription>
+                <CardTitle className="text-sm">Top 3 Reasons</CardTitle>
+                <CardDescription>Most common visit purposes</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold capitalize">
-                  {topReason?._id || "N/A"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {topReason ? `${topReason.count} visit(s)` : "No data"}
-                </p>
+                {topReasons.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No data</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topReasons.map((item, index) => (
+                      <div
+                        key={`${item._id}-${index}`}
+                        className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                          <span className="capitalize text-sm font-medium truncate">
+                            {item._id}
+                          </span>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {item.count} visit(s)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Top College</CardTitle>
-                <CardDescription>Highest check-in volume</CardDescription>
+                <CardTitle className="text-sm">Top 3 Colleges</CardTitle>
+                <CardDescription>Highest check-in volumes</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">{topCollege?._id || "N/A"}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {topCollege ? `${topCollege.count} visit(s)` : "No data"}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Employee Share</CardTitle>
-                <CardDescription>Teacher and staff participation</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{employeePercent}%</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {employeeTotal} of {stats.totalCount} visit(s)
-                </p>
+                {topColleges.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No data</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topColleges.map((item, index) => (
+                      <div
+                        key={`${item._id}-${index}`}
+                        className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {index + 1}
+                          </span>
+                          <span className="text-sm font-medium truncate">{item._id}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {item.count} visit(s)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -369,43 +399,6 @@ export default function AdminDashboardPage() {
             </Card>
           </div>
 
-          {/* Visitor Type Breakdown */}
-          <Card className="animate-fade-in stagger-3">
-            <CardHeader className="flex flex-row items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Users2 className="h-4 w-4 text-emerald-600" />
-              </div>
-              <div>
-                <CardTitle className="text-base">By Visitor Type</CardTitle>
-                <CardDescription>
-                  Student, Faculty, Employee breakdown
-                </CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {stats.byType.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  No data for this period
-                </p>
-              ) : (
-                <div className="flex flex-wrap gap-3">
-                  {stats.byType.map((t) => (
-                    <div
-                      key={t._id}
-                      className="flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3"
-                    >
-                      <span className="font-semibold capitalize text-sm">
-                        {t._id}
-                      </span>
-                      <span className="text-2xl font-bold text-primary">
-                        {t.count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </>
       ) : (
         <Card>

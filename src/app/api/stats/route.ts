@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import VisitLog from "@/models/VisitLog";
 
+const STATS_TIMEZONE = process.env.STATS_TIMEZONE || "Asia/Manila";
+
 function getDateRange(filter: string) {
   const now = new Date();
   let start: Date;
@@ -26,7 +28,8 @@ function getDateRange(filter: string) {
       start.setHours(0, 0, 0, 0);
       break;
     default:
-      start = new Date(0);
+      start = new Date(now);
+      start.setHours(0, 0, 0, 0);
       break;
   }
 
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
     const endDateParam = searchParams.get("endDate");
     const reason = (searchParams.get("reason") || "").trim();
     const college = (searchParams.get("college") || "").trim();
-    const employeeStatus = searchParams.get("employeeStatus") || "all";
+    const visitorRole = (searchParams.get("visitorRole") || "all").trim();
 
     let start: Date;
     let end: Date;
@@ -62,6 +65,18 @@ export async function GET(request: NextRequest) {
       start = new Date(startDateParam);
       start.setHours(0, 0, 0, 0);
       end = new Date(endDateParam);
+      end.setHours(23, 59, 59, 999);
+    } else if (filter === "all") {
+      const firstLog = await VisitLog.findOne({}, { checkInTime: 1 })
+        .sort({ checkInTime: 1 })
+        .lean();
+
+      start = firstLog?.checkInTime
+        ? new Date(firstLog.checkInTime)
+        : new Date();
+      start.setHours(0, 0, 0, 0);
+
+      end = new Date();
       end.setHours(23, 59, 59, 999);
     } else {
       const range = getDateRange(filter);
@@ -85,12 +100,20 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    if (employeeStatus === "employee") {
-      visitorMatch["visitorData.type"] = { $in: ["faculty", "employee"] };
+    if (visitorRole === "employee") {
+      visitorMatch["visitorData.type"] = { $in: ["teacher", "employee"] };
     }
 
-    if (employeeStatus === "nonEmployee") {
+    if (visitorRole === "student") {
       visitorMatch["visitorData.type"] = "student";
+    }
+
+    if (visitorRole === "teacher") {
+      visitorMatch["visitorData.type"] = "teacher";
+    }
+
+    if (visitorRole === "staff") {
+      visitorMatch["visitorData.type"] = "employee";
     }
 
     const [faceted] = await VisitLog.aggregate([
@@ -108,7 +131,14 @@ export async function GET(request: NextRequest) {
       {
         $facet: {
           totalCount: [{ $count: "count" }],
-          byReason: [{ $group: { _id: "$reason", count: { $sum: 1 } } }],
+          uniqueVisitors: [
+            { $group: { _id: "$visitorData._id" } },
+            { $count: "count" },
+          ],
+          byReason: [
+            { $group: { _id: "$reason", count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+          ],
           byType: [{ $group: { _id: "$visitorData.type", count: { $sum: 1 } } }],
           byCollege: [
             { $group: { _id: "$visitorData.program", count: { $sum: 1 } } },
@@ -119,7 +149,7 @@ export async function GET(request: NextRequest) {
               $group: {
                 _id: {
                   $cond: [
-                    { $in: ["$visitorData.type", ["faculty", "employee"]] },
+                    { $in: ["$visitorData.type", ["teacher", "employee"]] },
                     "employee",
                     "nonEmployee",
                   ],
@@ -136,7 +166,11 @@ export async function GET(request: NextRequest) {
             {
               $group: {
                 _id: {
-                  $dateToString: { format: "%Y-%m-%d", date: "$checkInTime" },
+                  $dateToString: {
+                    format: "%Y-%m-%d",
+                    date: "$checkInTime",
+                    timezone: STATS_TIMEZONE,
+                  },
                 },
                 count: { $sum: 1 },
               },
@@ -148,6 +182,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     const totalCount = faceted?.totalCount?.[0]?.count || 0;
+    const uniqueVisitors = faceted?.uniqueVisitors?.[0]?.count || 0;
     const currentInLibrary = faceted?.currentInLibrary?.[0]?.count || 0;
     const byReason = faceted?.byReason || [];
     const byType = faceted?.byType || [];
@@ -157,6 +192,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       totalCount,
+      uniqueVisitors,
       byReason,
       byType,
       byCollege,
@@ -168,7 +204,7 @@ export async function GET(request: NextRequest) {
       appliedFilters: {
         reason,
         college,
-        employeeStatus,
+        visitorRole,
       },
     });
   } catch (error) {

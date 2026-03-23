@@ -17,15 +17,15 @@ import { neuLogo } from "@/lib/branding";
 
 const navItems = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/visitors", label: "Visitors", icon: Users },
   { href: "/admin/logs", label: "Visit Logs", icon: FileText },
+  { href: "/admin/accounts", label: "Registered Accounts", icon: Users },
 ];
 
 export function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-72 bg-[#072214] flex flex-col border-r border-amber-100/10">
+    <aside className="w-72 h-screen shrink-0 bg-[#072214] flex flex-col border-r border-amber-100/10 overflow-y-auto">
       {/* Logo */}
       <div className="p-6 border-b border-amber-100/10">
         <Link href="/admin/dashboard" className="flex items-center gap-3">

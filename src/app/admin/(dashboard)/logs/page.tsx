@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { SearchBar } from "@/components/search-bar";
 import { ExportLogsPDF } from "@/components/pdf-export-button";
 import { DateRangePicker, DateFilter } from "@/components/date-range-picker";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -12,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, Clock } from "lucide-react";
+import { FileText, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface LogEntry {
   _id: string;
@@ -24,10 +25,12 @@ interface LogEntry {
 export default function AdminLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<DateFilter>("today");
+  const [filter, setFilter] = useState<DateFilter>("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   const fetchLogs = useCallback(() => {
     setLoading(true);
@@ -36,7 +39,7 @@ export default function AdminLogsPage() {
     if (filter === "custom" && startDate && endDate) {
       params.set("startDate", startDate);
       params.set("endDate", endDate);
-    } else if (filter !== "custom") {
+    } else if (filter !== "custom" && filter !== "all") {
       const now = new Date();
       let start: Date;
       switch (filter) {
@@ -73,6 +76,10 @@ export default function AdminLogsPage() {
     fetchLogs();
   }, [fetchLogs]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filter, startDate, endDate]);
+
   const handleFilterChange = (f: DateFilter) => {
     setFilter(f);
     if (f !== "custom") {
@@ -80,6 +87,16 @@ export default function AdminLogsPage() {
       setEndDate("");
     }
   };
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / rowsPerPage));
+  const pageStart = (currentPage - 1) * rowsPerPage;
+  const paginatedLogs = logs.slice(pageStart, pageStart + rowsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   return (
     <div className="space-y-8">
@@ -167,7 +184,7 @@ export default function AdminLogsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              logs.map((log) => (
+              paginatedLogs.map((log) => (
                 <TableRow key={log._id}>
                   <TableCell className="font-medium">
                     {log.visitorData?.name || "\u2014"}
@@ -199,9 +216,37 @@ export default function AdminLogsPage() {
 
       {/* Record count */}
       {!loading && logs.length > 0 && (
-        <p className="text-sm text-muted-foreground">
-          Showing {logs.length} record{logs.length !== 1 && "s"}
-        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, logs.length)} of {logs.length} record{logs.length !== 1 && "s"}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Prev
+            </Button>
+
+            <span className="text-sm text-muted-foreground min-w-[64px] text-center">
+              Page {currentPage} / {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

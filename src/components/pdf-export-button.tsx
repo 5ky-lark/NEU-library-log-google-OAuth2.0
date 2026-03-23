@@ -9,7 +9,6 @@ interface ExportVisitorsPDFProps {
   data: {
     name: string;
     email: string;
-    rfid?: string;
     program: string;
     type: string;
     blocked: boolean;
@@ -34,11 +33,10 @@ export function ExportVisitorsPDF({
 
     autoTable(doc, {
       startY: 40,
-      head: [["Name", "Email", "RFID", "Program", "Type", "Status"]],
+      head: [["Name", "Email", "Program", "Type", "Status"]],
       body: data.map((v) => [
         v.name,
         v.email,
-        v.rfid || "\u2014",
         v.program,
         v.type,
         v.blocked ? "Blocked" : "Active",

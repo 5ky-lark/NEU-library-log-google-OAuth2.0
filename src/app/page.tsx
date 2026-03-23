@@ -36,42 +36,33 @@ export default function HomePage() {
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-4 py-20 text-center">
         <section className="animate-fade-in text-white max-w-3xl">
-          <div className="inline-flex items-center gap-3 rounded-full border border-amber-100/30 bg-amber-100/10 px-4 py-2 text-sm text-amber-100">
-            <Library className="h-4 w-4" />
-            NEU Library Visitor Log
-          </div>
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-amber-100/30 bg-amber-100/10 px-3 py-1.5 text-xs font-semibold text-amber-100">
+              <Library className="h-3.5 w-3.5" />
+              NEU Library Visitor Log
+            </div>
 
-          <div className="mt-8 flex items-center justify-center gap-4">
-            <Image
-              src={neuLogo}
-              alt="New Era University logo"
-              width={72}
-              height={72}
-              className="rounded-2xl border border-amber-50/35 bg-white/90 p-1"
-              priority
-            />
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-amber-100/80">
-                New Era University
-              </p>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl text-amber-50 leading-tight">
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+              <Image
+                src={neuLogo}
+                alt="New Era University logo"
+                width={72}
+                height={72}
+                className="rounded-2xl border border-amber-50/35 bg-white/90 p-1"
+                priority
+              />
+              <h1 className="text-4xl md:text-5xl lg:text-6xl text-amber-50 leading-[1.02] tracking-tight text-center sm:text-left">
                 Welcome to NEU Library
               </h1>
             </div>
           </div>
 
           <p className="mt-7 mx-auto max-w-2xl text-base leading-relaxed text-emerald-50/85 md:text-xl">
-            A secure visitor check-in desk for students, faculty, and staff. Sign in with your institutional Google account for fast access and role-based security.
+            A visitor check-in desk for students, teachers, and staff. Sign in with your institutional Google account to continue.
           </p>
-
-          <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs uppercase tracking-wider text-amber-100/85">
-            <span className="brand-pill rounded-full px-3 py-1.5">Google Auth</span>
-            <span className="brand-pill rounded-full px-3 py-1.5">Role Based Access</span>
-            <span className="brand-pill rounded-full px-3 py-1.5">Admin Analytics</span>
-          </div>
         </section>
 
-        <div className="my-10 h-px w-full max-w-xl bg-gradient-to-r from-transparent via-amber-100/35 to-transparent" />
+        <div className="my-9 h-px w-full max-w-xl bg-gradient-to-r from-transparent via-amber-100/35 to-transparent" />
 
         <section className="animate-slide-up w-full flex justify-center">
           <CheckInForm />

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { neuLogo } from "@/lib/branding";
 
@@ -60,24 +60,16 @@ function WelcomeContent() {
         )}
 
         {/* Success icon */}
-        <div className="relative inline-flex mb-8">
-          <div className="h-20 w-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
-            <div className="h-14 w-14 rounded-full bg-emerald-500/30 flex items-center justify-center">
-              <CheckCircle2 className="h-8 w-8 text-emerald-400" />
-            </div>
-          </div>
-          <div className="absolute inset-0 h-20 w-20 rounded-full bg-emerald-500/10 animate-ping" />
-        </div>
-
         {/* Welcome text */}
-        <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-          Welcome,{" "}
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
-            {name}
-          </span>
-          !
-        </h1>
-        <p className="text-white/40 text-lg mb-8">{program}</p>
+          <p className="text-emerald-200/85 text-base md:text-lg mb-1">Welcome,</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-white leading-tight mb-2 text-balance">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-300 to-teal-300">
+              {name}
+            </span>
+          </h1>
+          <p className="text-emerald-100/75 text-sm md:text-base mb-8">
+            {program && program !== "N/A" ? program : "College not set"}
+          </p>
 
         {/* Info card */}
         <div className="rounded-2xl glass-card p-6 mb-8">

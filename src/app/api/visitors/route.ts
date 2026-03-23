@@ -49,17 +49,19 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { name, email, rfid, program, type } = body;
+    const normalizedType =
+      type === "faculty" ? "teacher" : type;
 
-    if (!name || !email || !program || !type) {
+    if (!name || !email || !program || !normalizedType) {
       return NextResponse.json(
         { error: "Name, email, program, and type are required" },
         { status: 400 }
       );
     }
 
-    if (!["student", "faculty", "employee"].includes(type)) {
+    if (!["student", "teacher", "employee"].includes(normalizedType)) {
       return NextResponse.json(
-        { error: "Type must be student, faculty, or employee" },
+        { error: "Type must be student, teacher, or employee" },
         { status: 400 }
       );
     }
@@ -89,7 +91,7 @@ export async function POST(request: NextRequest) {
       email: email.toLowerCase(),
       rfid: rfid?.trim() || undefined,
       program,
-      type,
+      type: normalizedType,
     });
 
     return NextResponse.json(visitor);

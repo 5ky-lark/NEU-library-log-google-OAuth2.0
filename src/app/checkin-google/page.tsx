@@ -3,15 +3,21 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { VISIT_REASONS } from "@/lib/constants";
-import { AlertCircle, BookOpen } from "lucide-react";
+import { COLLEGES, VISIT_REASONS } from "@/lib/constants";
+import { AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { neuLogo } from "@/lib/branding";
+
+const USER_ROLES = ["student", "teacher", "staff"] as const;
+
+type UserRoleOption = (typeof USER_ROLES)[number];
 
 export default function CheckInGooglePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [reason, setReason] = useState<string>("reading");
+  const [college, setCollege] = useState("");
+  const [userRole, setUserRole] = useState<UserRoleOption | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [blockedReason, setBlockedReason] = useState<string | null>(null);
@@ -39,7 +45,14 @@ export default function CheckInGooglePage() {
       const res = await fetch("/api/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, reason, name: session.user?.name }),
+        body: JSON.stringify({
+          email,
+          reason,
+          name: session.user?.name,
+          college,
+          program: college,
+          userRole,
+        }),
       });
       const data = await res.json();
 
@@ -151,13 +164,6 @@ export default function CheckInGooglePage() {
               </div>
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-center mb-6">
-              <div className="h-12 w-12 rounded-2xl bg-amber-100/15 border border-amber-100/30 flex items-center justify-center">
-                <BookOpen className="h-6 w-6 text-amber-200" />
-              </div>
-            </div>
-
             <div className="text-center mb-6">
               {session.user.image && (
                 <div className="mb-3 flex justify-center">
@@ -182,6 +188,46 @@ export default function CheckInGooglePage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-white/70">
+                  I am a
+                </label>
+                <select
+                  className="w-full h-12 rounded-xl bg-white/[0.08] border border-amber-100/20 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-200/40 transition-all duration-200 [&>option]:bg-[#0d3f25] [&>option]:text-white"
+                  value={userRole}
+                  onChange={(e) => setUserRole(e.target.value as UserRoleOption | "")}
+                  disabled={loading}
+                  required
+                >
+                  <option value="">Select your role</option>
+                  {USER_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/70">
+                  College
+                </label>
+                <select
+                  className="w-full h-12 rounded-xl bg-white/[0.08] border border-amber-100/20 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-300/40 focus:border-amber-200/40 transition-all duration-200 [&>option]:bg-[#0d3f25] [&>option]:text-white"
+                  value={college}
+                  onChange={(e) => setCollege(e.target.value)}
+                  disabled={loading}
+                  required
+                >
+                  <option value="">Select your college</option>
+                  {COLLEGES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-white/70">
                   Reason for Visit
                 </label>
                 <select
@@ -201,7 +247,7 @@ export default function CheckInGooglePage() {
               <button
                 type="submit"
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-amber-400 to-amber-300 text-emerald-950 font-extrabold hover:from-amber-300 hover:to-yellow-200 transition-all duration-200 shadow-lg shadow-amber-300/20 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-                disabled={loading}
+                disabled={loading || !college || !userRole}
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">

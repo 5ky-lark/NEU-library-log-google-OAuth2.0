@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
-export type VisitorType = "student" | "faculty" | "employee";
+export type VisitorType = "student" | "teacher" | "employee";
 
 export interface IVisitor extends Document {
   name: string;
@@ -20,7 +20,7 @@ const VisitorSchema = new Schema<IVisitor>(
     email: { type: String, required: true, unique: true },
     rfid: { type: String, sparse: true },
     program: { type: String, required: true },
-    type: { type: String, enum: ["student", "faculty", "employee"], required: true },
+    type: { type: String, enum: ["student", "teacher", "employee"], required: true },
     blocked: { type: Boolean, default: false },
     blockedReason: { type: String },
   },

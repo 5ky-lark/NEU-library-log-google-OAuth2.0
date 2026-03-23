@@ -28,17 +28,17 @@ import {
   Ban,
   CheckCircle,
   Users,
-  CreditCard,
   ShieldCheck,
   ShieldX,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Visitor {
   _id: string;
   name: string;
   email: string;
-  rfid?: string;
   program: string;
   type: string;
   blocked: boolean;
@@ -48,6 +48,8 @@ interface Visitor {
 export default function AdminVisitorsPage() {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "blocked">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "student" | "teacher" | "employee">("all");
   const [loading, setLoading] = useState(true);
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
@@ -55,13 +57,14 @@ export default function AdminVisitorsPage() {
   const [addForm, setAddForm] = useState({
     name: "",
     email: "",
-    rfid: "",
     program: "",
     type: "student",
   });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [deleteLoadingId, setDeleteLoadingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
 
   const fetchVisitors = useCallback(() => {
     setLoading(true);
@@ -101,10 +104,7 @@ export default function AdminVisitorsPage() {
       const res = await fetch("/api/visitors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...addForm,
-          rfid: addForm.rfid.trim() || undefined,
-        }),
+        body: JSON.stringify(addForm),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -114,7 +114,6 @@ export default function AdminVisitorsPage() {
       setAddForm({
         name: "",
         email: "",
-        rfid: "",
         program: "",
         type: "student",
       });
@@ -150,32 +149,96 @@ export default function AdminVisitorsPage() {
     }
   };
 
+  const filteredAccounts = visitors.filter((account) => {
+    const statusMatch =
+      statusFilter === "all" ||
+      (statusFilter === "blocked" ? account.blocked : !account.blocked);
+    const typeMatch = typeFilter === "all" || account.type === typeFilter;
+    return statusMatch && typeMatch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredAccounts.length / rowsPerPage));
+  const pageStart = (currentPage - 1) * rowsPerPage;
+  const paginatedAccounts = filteredAccounts.slice(pageStart, pageStart + rowsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, typeFilter]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const blockedCount = visitors.filter((account) => account.blocked).length;
+  const activeCount = visitors.length - blockedCount;
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Visitors</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Registered Accounts</h1>
           <p className="text-muted-foreground mt-1">
-            Manage registered library visitors
+            Manage registered user accounts for library access
           </p>
         </div>
         <div className="flex gap-2 self-start">
-          <ExportVisitorsPDF data={visitors} />
+          <ExportVisitorsPDF data={filteredAccounts} filename="registered-accounts" />
           <Button onClick={() => setAddModalOpen(true)} variant="gradient">
             <Plus className="h-4 w-4 mr-2" />
-            Add Visitor
+            Add Account
           </Button>
         </div>
       </div>
 
-      {/* Search */}
-      <SearchBar
-        value={search}
-        onChange={setSearch}
-        placeholder="Search by name, program, or email..."
-        className="max-w-sm"
-      />
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Total Accounts</p>
+          <p className="text-2xl font-semibold mt-1">{visitors.length}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Active Accounts</p>
+          <p className="text-2xl font-semibold mt-1 text-emerald-600">{activeCount}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Blocked Accounts</p>
+          <p className="text-2xl font-semibold mt-1 text-destructive">{blockedCount}</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr),180px,180px]">
+        <SearchBar
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name, program, or email..."
+          className="max-w-full"
+        />
+        <Select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value as "all" | "active" | "blocked")
+          }
+        >
+          <option value="all">All Status</option>
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </Select>
+        <Select
+          value={typeFilter}
+          onChange={(e) =>
+            setTypeFilter(
+              e.target.value as "all" | "student" | "teacher" | "employee"
+            )
+          }
+        >
+          <option value="all">All Types</option>
+          <option value="student">Student</option>
+          <option value="teacher">Teacher</option>
+          <option value="employee">Staff</option>
+        </Select>
+      </div>
 
       {/* Table */}
       <div className="rounded-xl border bg-card shadow-premium overflow-hidden">
@@ -184,7 +247,6 @@ export default function AdminVisitorsPage() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>RFID</TableHead>
               <TableHead>Program</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
@@ -195,7 +257,7 @@ export default function AdminVisitorsPage() {
             {loading ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   className="text-center py-12 text-muted-foreground"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -218,41 +280,31 @@ export default function AdminVisitorsPage() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    Loading visitors...
+                      Loading accounts...
                   </div>
                 </TableCell>
               </TableRow>
-            ) : visitors.length === 0 ? (
+            ) : filteredAccounts.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={6}
                   className="text-center py-12 text-muted-foreground"
                 >
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  No visitors found
+                  No accounts found
                 </TableCell>
               </TableRow>
             ) : (
-              visitors.map((v) => (
+              paginatedAccounts.map((v) => (
                 <TableRow key={v._id}>
                   <TableCell className="font-medium">{v.name}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {v.email}
                   </TableCell>
-                  <TableCell>
-                    {v.rfid ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-mono bg-muted px-2 py-1 rounded-md">
-                        <CreditCard className="h-3 w-3" />
-                        {v.rfid}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground">&mdash;</span>
-                    )}
-                  </TableCell>
                   <TableCell>{v.program}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary capitalize">
-                      {v.type}
+                      {v.type === "faculty" ? "teacher" : v.type}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -315,6 +367,40 @@ export default function AdminVisitorsPage() {
         </Table>
       </div>
 
+      {!loading && filteredAccounts.length > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {pageStart + 1}-{Math.min(pageStart + rowsPerPage, filteredAccounts.length)} of {filteredAccounts.length} account{filteredAccounts.length !== 1 && "s"}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Prev
+            </Button>
+
+            <span className="text-sm text-muted-foreground min-w-[64px] text-center">
+              Page {currentPage} / {totalPages}
+            </span>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Block Modal */}
       <BlockVisitorModal
         open={blockModalOpen}
@@ -327,7 +413,7 @@ export default function AdminVisitorsPage() {
       <Dialog open={addModalOpen} onOpenChange={setAddModalOpen}>
         <DialogContent onClose={() => setAddModalOpen(false)}>
           <DialogHeader>
-            <DialogTitle>Add Visitor</DialogTitle>
+            <DialogTitle>Add Account</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddSubmit} className="space-y-4 mt-4">
             {addError && (
@@ -357,22 +443,13 @@ export default function AdminVisitorsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>RFID (optional)</Label>
-              <Input
-                value={addForm.rfid}
-                onChange={(e) =>
-                  setAddForm((f) => ({ ...f, rfid: e.target.value }))
-                }
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Program</Label>
               <Input
                 value={addForm.program}
                 onChange={(e) =>
                   setAddForm((f) => ({ ...f, program: e.target.value }))
                 }
-                placeholder="e.g., BSIT, BSCS, Faculty - CIS"
+                placeholder="e.g., BSIT, BSCS, Teacher - CCSI"
                 required
               />
             </div>
@@ -385,7 +462,7 @@ export default function AdminVisitorsPage() {
                 }
               >
                 <option value="student">Student</option>
-                <option value="faculty">Faculty</option>
+                <option value="teacher">Teacher</option>
                 <option value="employee">Employee</option>
               </Select>
             </div>
@@ -398,7 +475,7 @@ export default function AdminVisitorsPage() {
                 Cancel
               </Button>
               <Button type="submit" variant="gradient" disabled={addLoading}>
-                {addLoading ? "Adding..." : "Add Visitor"}
+                {addLoading ? "Adding..." : "Add Account"}
               </Button>
             </DialogFooter>
           </form>

@@ -3,12 +3,33 @@ import connectDB from "@/lib/db";
 import Visitor from "@/models/Visitor";
 import VisitLog, { VISIT_REASONS } from "@/models/VisitLog";
 
+type IncomingUserRole = "student" | "teacher" | "staff";
+
+function mapIncomingRoleToVisitorType(role?: string): "student" | "teacher" | "employee" | null {
+  if (role === "student") return "student";
+  if (role === "teacher") return "teacher";
+  if (role === "staff") return "employee";
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
     const body = await request.json();
-    const { rfid, email, reason, name } = body;
+    const { rfid, email, reason, name, program, college, department, userRole } = body;
+
+    const programValue =
+      typeof program === "string" && program.trim()
+        ? program.trim()
+        : [college, department]
+            .filter((v: unknown) => typeof v === "string" && v.trim())
+            .map((v: string) => v.trim())
+            .join(" - ");
+
+    const mappedType = mapIncomingRoleToVisitorType(
+      typeof userRole === "string" ? (userRole.toLowerCase() as IncomingUserRole) : undefined
+    );
 
     if (!reason || !VISIT_REASONS.includes(reason)) {
       return NextResponse.json(
@@ -24,12 +45,31 @@ export async function POST(request: NextRequest) {
     } else if (email && email.trim()) {
       const emailLower = email.trim().toLowerCase();
       visitor = await Visitor.findOne({ email: emailLower });
+
+      if (visitor) {
+        let shouldSave = false;
+
+        if (programValue && (!visitor.program || visitor.program === "N/A")) {
+          visitor.program = programValue;
+          shouldSave = true;
+        }
+
+        if ((!visitor.type || visitor.type === "student") && mappedType && mappedType !== visitor.type) {
+          visitor.type = mappedType;
+          shouldSave = true;
+        }
+
+        if (shouldSave) {
+          await visitor.save();
+        }
+      }
+
       if (!visitor && name) {
         visitor = await Visitor.create({
           name: name.trim(),
           email: emailLower,
-          program: "N/A",
-          type: "student",
+          program: programValue || "N/A",
+          type: mappedType || "student",
         });
       }
     }

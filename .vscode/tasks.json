@@ -1,0 +1,77 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Seed Database",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"seed"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Seed Database",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"seed"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Seed Database Fallback URI",
+			"type": "shell",
+			"command": "$env:MONGODB_URI=$env:MONGODB_URI_FALLBACK; npm run seed",
+			"isBackground": false
+		},
+		{
+			"label": "Seed Database Fallback URI",
+			"type": "shell",
+			"command": "$env:MONGODB_URI=$env:MONGODB_URI_FALLBACK; npm run seed",
+			"isBackground": false
+		},
+		{
+			"label": "Seed Database Fallback URI",
+			"type": "shell",
+			"command": "$env:MONGODB_URI=$env:MONGODB_URI_FALLBACK; npm run seed",
+			"isBackground": false
+		},
+		{
+			"label": "Git Status",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"status",
+				"--short",
+				"--branch"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Git Add",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"-A"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "Copy Favicon",
+			"type": "shell",
+			"command": "Copy-Item",
+			"args": [
+				"-Path",
+				"New_Era_University.svg.png",
+				"-Destination",
+				"src/app/icon.png",
+				"-Force"
+			],
+			"isBackground": false
+		}
+	]
+}

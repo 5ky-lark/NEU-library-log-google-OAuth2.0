@@ -18,6 +18,11 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "NEU Library Visitor Log",
   description: "Visitor check-in and management system for NEU Library",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({

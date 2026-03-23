@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar, CalendarDays, CalendarRange, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type DateFilter = "today" | "week" | "month" | "custom";
+export type DateFilter = "all" | "today" | "week" | "month" | "custom";
 
 interface DateRangePickerProps {
   filter: DateFilter;
@@ -18,9 +18,10 @@ interface DateRangePickerProps {
 }
 
 const filterButtons: { value: DateFilter; label: string; icon: React.ElementType }[] = [
+  { value: "all", label: "All", icon: CalendarRange },
   { value: "today", label: "Today", icon: Calendar },
   { value: "week", label: "This Week", icon: CalendarDays },
-  { value: "month", label: "This Month", icon: CalendarRange },
+  { value: "month", label: "This Month", icon: CalendarDays },
   { value: "custom", label: "Custom", icon: SlidersHorizontal },
 ];
 

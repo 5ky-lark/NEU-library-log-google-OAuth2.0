@@ -1,11 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, CalendarRange, TrendingUp, Clock } from "lucide-react";
+import { CalendarRange, TrendingUp } from "lucide-react";
 
 interface StatsCardsProps {
   totalCount: number;
-  currentInLibrary: number;
   start: string;
   end: string;
 }
@@ -20,14 +19,6 @@ const cards = [
     iconColor: "text-blue-600",
   },
   {
-    key: "current",
-    title: "Currently in Library",
-    icon: Users,
-    gradient: "from-emerald-500/10 to-emerald-600/5",
-    iconBg: "bg-emerald-500/10",
-    iconColor: "text-emerald-600",
-  },
-  {
     key: "avgDaily",
     title: "Avg. Daily Visits",
     icon: TrendingUp,
@@ -35,19 +26,10 @@ const cards = [
     iconBg: "bg-violet-500/10",
     iconColor: "text-violet-600",
   },
-  {
-    key: "peakTime",
-    title: "Period Range",
-    icon: Clock,
-    gradient: "from-amber-500/10 to-amber-600/5",
-    iconBg: "bg-amber-500/10",
-    iconColor: "text-amber-600",
-  },
 ];
 
 export function StatsCards({
   totalCount,
-  currentInLibrary,
   start,
   end,
 }: StatsCardsProps) {
@@ -67,13 +49,11 @@ export function StatsCards({
       value: totalCount.toLocaleString(),
       sub: `${startDate} - ${endDate}`,
     },
-    { value: currentInLibrary.toLocaleString(), sub: "Without check-out" },
     { value: avgDaily.toLocaleString(), sub: `Over ${daysDiff} day${daysDiff > 1 ? "s" : ""}` },
-    { value: `${daysDiff}d`, sub: `${startDate} - ${endDate}` },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
       {cards.map((card, i) => {
         const Icon = card.icon;
         return (
