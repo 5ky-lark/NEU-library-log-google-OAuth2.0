@@ -2,7 +2,7 @@
 
 This project is for academic purposes and is submitted to Prof. Jeremias C. Esperanza.
 
-Web-based visitor check-in and analytics platform for the NEU Library, with role-aware access, Google OAuth, and an AI assistant for admin insights.
+Seeded data in this project is synthetic and intended for demo, testing, and academic presentation only. It does not represent official institutional records.
 
 ## Live App
 - Main: https://www.neulibrarylog.online

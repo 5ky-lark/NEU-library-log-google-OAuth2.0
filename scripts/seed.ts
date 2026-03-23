@@ -77,6 +77,13 @@ function parseDateOnly(dateText?: string): Date | null {
   return new Date(year, monthIndex, day);
 }
 
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 async function seed() {
   console.log("Connecting to MongoDB...");
   try {
@@ -214,7 +221,7 @@ async function seed() {
 
   console.log(`Seeded/updated ${seededVisitors.length} account(s).`);
   console.log(
-    `Inserted ${logsToInsert.length} visit log(s) from ${start.toISOString().slice(0, 10)} to ${end.toISOString().slice(0, 10)}.`
+    `Inserted ${logsToInsert.length} visit log(s) from ${formatLocalDate(start)} to ${formatLocalDate(end)}.`
   );
 
   console.log("Seed complete.");
