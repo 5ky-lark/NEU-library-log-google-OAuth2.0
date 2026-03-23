@@ -34,14 +34,14 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <div className="relative z-10 mx-auto grid min-h-screen w-full max-w-6xl items-center gap-12 px-4 py-16 lg:grid-cols-[minmax(0,1fr)_440px] lg:px-8 lg:py-24">
-        <section className="animate-fade-in text-white max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-4xl flex-col items-center justify-center px-4 py-20 text-center">
+        <section className="animate-fade-in text-white max-w-3xl">
           <div className="inline-flex items-center gap-3 rounded-full border border-amber-100/30 bg-amber-100/10 px-4 py-2 text-sm text-amber-100">
             <Library className="h-4 w-4" />
             NEU Library Visitor Log
           </div>
 
-          <div className="mt-7 flex items-center justify-center lg:justify-start gap-4">
+          <div className="mt-8 flex items-center justify-center gap-4">
             <Image
               src={neuLogo}
               alt="New Era University logo"
@@ -60,18 +60,20 @@ export default function HomePage() {
             </div>
           </div>
 
-          <p className="mt-6 max-w-xl mx-auto lg:mx-0 text-base leading-relaxed text-emerald-50/85 md:text-lg">
+          <p className="mt-7 mx-auto max-w-2xl text-base leading-relaxed text-emerald-50/85 md:text-xl">
             A secure visitor check-in desk for students, faculty, and staff. Sign in with your institutional Google account for fast access and role-based security.
           </p>
 
-          <div className="mt-8 flex flex-wrap justify-center lg:justify-start gap-3 text-xs uppercase tracking-wider text-amber-100/85">
+          <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs uppercase tracking-wider text-amber-100/85">
             <span className="brand-pill rounded-full px-3 py-1.5">Google Auth</span>
             <span className="brand-pill rounded-full px-3 py-1.5">Role Based Access</span>
             <span className="brand-pill rounded-full px-3 py-1.5">Admin Analytics</span>
           </div>
         </section>
 
-        <section className="animate-slide-up flex justify-center lg:justify-end">
+        <div className="my-10 h-px w-full max-w-xl bg-gradient-to-r from-transparent via-amber-100/35 to-transparent" />
+
+        <section className="animate-slide-up w-full flex justify-center">
           <CheckInForm />
         </section>
       </div>
