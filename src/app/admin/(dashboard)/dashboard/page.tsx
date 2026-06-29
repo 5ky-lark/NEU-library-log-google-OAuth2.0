@@ -73,12 +73,26 @@ export default function AdminDashboardPage() {
     }
 
     fetch(`/api/stats?${params}`)
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.error || `Request failed (${res.status})`);
+        }
+        return data;
+      })
       .then((data) => {
-        setStats(data);
+        setStats({
+          ...data,
+          byReason: data.byReason || [],
+          byCollege: data.byCollege || [],
+          dailyBreakdown: data.dailyBreakdown || [],
+        });
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setStats(null);
+        setLoading(false);
+      });
   }, [filter, startDate, endDate, reasonFilter, collegeFilter, visitorRoleFilter]);
 
   useEffect(() => {
