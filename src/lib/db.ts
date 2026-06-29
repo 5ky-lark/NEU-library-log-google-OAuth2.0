@@ -46,7 +46,7 @@ async function connectDB(): Promise<typeof mongoose> {
     // Some networks block SRV DNS lookups; allow a standard URI fallback.
     if (
       MONGODB_URI.startsWith("mongodb+srv://") &&
-      err?.code === "ECONNREFUSED" &&
+      (err?.code === "ECONNREFUSED" || err?.code === "ENOTFOUND") &&
       MONGODB_URI_FALLBACK
     ) {
       cached.promise = mongoose.connect(MONGODB_URI_FALLBACK, {
